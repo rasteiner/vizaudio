@@ -1,6 +1,6 @@
 var clm = require('clmtrackr/clmtrackr');
 var pModel = require('clmtrackr/models/model_pca_20_svm.js');
-var baudio = require('baudio');
+var baudio = require('webaudio');
 var getUserMedia = require('getusermedia');
 
 var vid = document.getElementById('inputVideo');
@@ -14,6 +14,14 @@ ctracker.init(pModel);
 
 
 var positions;
+var pitch = 440;
+var volume = 0.0;
+
+var b = baudio(function (t) {
+    return Math.sin(t * Math.PI * 2 * pitch) * volume;
+});
+
+b.play();
 
 
 function dist(p1, p2) {
@@ -21,6 +29,11 @@ function dist(p1, p2) {
 	var y = positions[p2][1] - positions[p1][1];
 	
 	return Math.sqrt(x*x + y*y);
+}
+
+function normalize(min, max, value) {
+	value = value * 1 / (max - min) - min;
+	return Math.min(Math.max(value, 0), 1);
 }
 
 function drawLoop() {
@@ -37,10 +50,18 @@ function drawLoop() {
     var rightBrow = (dist(32, 17) + dist(32, 16)) / 2 / noseToRightEye;
     var mouth = dist(60, 57) / noseToMouth;
 
-    console.log(leftBrow, rightBrow, mouth);
+    leftBrow = normalize(0.4, 0.7, leftBrow);
+    rightBrow = normalize(0.4, 0.7, rightBrow);
+    mouth = normalize(0.05, 0.6, mouth);    
+
+    pitch = 440 + (leftBrow / 2 + rightBrow / 2) * 440;
+    volume = mouth * 0.3;
+
+    log.innerHTML = pitch + '<br>' + volume;
+    //console.log(leftBrow, rightBrow, mouth);
 }
 
-getUserMedia(function (err, stream) {
+getUserMedia({video: true, audio: false}, function (err, stream) {
     // if the browser doesn't support user media 
     // or the user says "no" the error gets passed 
     // as the first argument. 
